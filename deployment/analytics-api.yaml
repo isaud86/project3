@@ -69,4 +69,4 @@ spec:
             secretKeyRef:
               name: db-secret
               key: DB_PASSWORD
-      restartPolicy: Always
+      restartPolicy:
