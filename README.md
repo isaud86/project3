@@ -98,12 +98,6 @@ Before you start, ensure you have the following tools and accounts set up:
 3. **Monitoring:**
    - Set up AWS CloudWatch for application monitoring and logging.
 
-### Deliverables
-
-- `Dockerfile`
-- Kubernetes configuration files
-- Screenshots of the AWS services dashboard (ECR, CodeBuild)
-- Logs and monitoring setup on AWS CloudWatch
 
 ### Best Practices
 
@@ -112,7 +106,3 @@ Before you start, ensure you have the following tools and accounts set up:
 - Implement CI/CD pipelines that include linter, unit tests, and integration tests before deployment.
 
 This README aims to provide a comprehensive guide for setting up and deploying the Coworking Space Service Extension on Kubernetes without the use of load balancers, focusing on internal cluster communication and security.
-
----
-
-Adjust any specifics or add more detailed steps according to your project's requirements and AWS configurations. This README serves both as a deployment guide and a documentation tool for new developers or administrators working on the project.
