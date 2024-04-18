@@ -1,4 +1,4 @@
-# README - Coworking Space Service Extension
+# Coworking Space Service Extension
 
 ## Overview
 
