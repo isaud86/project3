@@ -1,108 +1,52 @@
-# Coworking Space Service Extension
+# Coworking Space Service
+This project is part of the Udacity Cloud DevOps Engineer Nanodegree program. It involves building and deploying a microservice for a coworking space.
 
-## Overview
+Project Overview
+The Coworking Space Service project aims to create a scalable and reliable microservice using Kubernetes and AWS services. The microservice will handle various functionalities related to managing a coworking space, such as user registration, booking management, and resource allocation.
 
-This document outlines the deployment of the Coworking Space Service Extension, which facilitates analytics on user activity via a set of APIs. This application is structured using a microservices architecture and is designed for deployment on a Kubernetes cluster managed by AWS EKS, using PostgreSQL as a database backend.
+Technologies Used
+Docker: Containerization platform used to package the microservice.
+AWS ECR: Elastic Container Registry used to store Docker images.
+AWS CodeBuild: Continuous integration and deployment service used to build and deploy the Docker image.
+Kubernetes: Container orchestration platform used to manage and scale the microservice.
+AWS RDS: Relational Database Service used to host the Postgres database.
+AWS CloudWatch: Monitoring and logging service used to monitor the application's health and performance.
+Project Setup
+To set up and run the Coworking Space Service, follow these steps:
 
-## Getting Started
+Clone the project repository: git clone <repository-url>
+Navigate to the project directory: cd coworking-space-service
+Build the Docker image: docker build -t coworking-service .
+Push the Docker image to AWS ECR: docker push <aws-ecr-repository-url>
+Set up the Kubernetes cluster: kubectl apply -f kubernetes/cluster.yaml
+Deploy the microservice: kubectl apply -f kubernetes/deployment.yaml
+Create the service: kubectl apply -f kubernetes/service.yaml
+Set up the database service: kubectl apply -f kubernetes/database.yaml
+Usage
+To use the Coworking Space Service, follow these steps:
 
-### Prerequisites
+Access the microservice API by using the service's external IP address.
+Use the API endpoints to perform various actions, such as user registration, booking management, and resource allocation.
+Screenshots
+Include relevant screenshots of your project here, such as:
 
-Before you start, ensure you have the following tools and accounts set up:
+Screenshot of the Docker image pushed to AWS ECR.
+Screenshot of the CodeBuild pipeline triggering the build and pushing the Docker image to ECR.
+Screenshot of the Kubernetes service created.
+Screenshot of the Kubernetes deployment description.
+Screenshot of the running pods in the Kubernetes cluster.
+Screenshot of the Postgres database service in Kubernetes.
+Troubleshooting
+If you encounter any issues while setting up or running the Coworking Space Service, try the following:
 
-- Python 3.6 or higher
-- Docker CLI
-- `kubectl` configured with access to your Kubernetes cluster
-- Helm 3
-- AWS CLI with appropriate permissions
+Double-check that you have followed all the setup steps correctly.
+Verify that all the required dependencies are installed.
+Check the logs in AWS CloudWatch for any error messages.
+Refer to the project rubric for additional guidance and requirements.
+License
+This project is licensed under the MIT License(opens in a new tab).
 
-### Dependencies
-
-#### Local Environment
-
-- **Python Environment:** Python 3.6+ is required for running the analytics application.
-- **Docker:** For building and running containerized applications.
-- **kubectl:** For interacting with your Kubernetes cluster.
-- **Helm:** For managing Kubernetes applications through Helm charts.
-
-#### Remote Resources
-
-- **AWS CodeBuild:** Builds Docker images based on your source code.
-- **AWS ECR:** Hosts Docker images in a private Docker registry.
-- **Kubernetes (AWS EKS):** Hosts your application in a managed Kubernetes environment.
-- **AWS CloudWatch:** Monitors and logs activities within your applications.
-- **GitHub:** Manages and stores version-controlled code.
-
-### Setup
-
-#### 1. Configure a PostgreSQL Database
-
-- **Add Bitnami Helm repository:**
-  ```bash
-  helm repo add bitnami https://charts.bitnami.com/bitnami
-  ```
-- **Install PostgreSQL using Helm:**
-  ```bash
-  helm install postgres bitnami/postgresql --set persistence.storageClass=gp2,volumeSize=10Gi --namespace default
-  ```
-  This will provision a PostgreSQL database within your Kubernetes cluster. Verify the deployment:
-  ```bash
-  kubectl get svc postgres-postgresql
-  ```
-
-#### 2. Running the Analytics Application Locally
-
-- Navigate to the `analytics/` directory.
-- **Install dependencies:**
-  ```bash
-  pip install -r requirements.txt
-  ```
-- **Run the application:**
-  ```bash
-  DB_USERNAME=postgres DB_PASSWORD=$(kubectl get secret --namespace default postgres-postgresql -o jsonpath="{.data.postgres-password}" | base64 --decode) python app.py
-  ```
-
-### Cluster Configuration
-
-#### AWS EKS Cluster Setup
-
-1. **EKS Cluster Creation:**
-   - Create a VPC and subnets.
-   - Define an IAM role for EKS services.
-   - Deploy an EKS cluster specifying the VPC and subnets.
-
-2. **Node Group Configuration:**
-   - Deploy EC2 instances as worker nodes.
-   - Configure auto-scaling to manage load effectively.
-
-3. **Security Configurations:**
-   - Define IAM roles and policies for secure access.
-   - Implement pod security policies and network policies to restrict traffic within the cluster.
-
-#### PostgreSQL Setup
-
-- **Helm Deployment:** Deploy PostgreSQL using the Bitnami chart for reliability and ease of management.
-- **Security:** Manage credentials using Kubernetes secrets and limit database access to necessary Kubernetes services.
-
-### Deployment Process
-
-1. **Continuous Integration and Deployment:**
-   - Use GitHub for source control.
-   - Set up AWS CodeBuild to automate builds and tests.
-   - Push successful builds to AWS ECR.
-
-2. **Kubernetes Deployment:**
-   - Write and apply Kubernetes YAML configurations for deployment and services.
-   - Use Helm for easier management of releases.
-
-3. **Monitoring:**
-   - Set up AWS CloudWatch for application monitoring and logging.
-
-
-### Best Practices
-
-- Ensure all Kubernetes configurations follow security best practices.
-- Use descriptive and clear comments in Dockerfiles and Kubernetes YAML files.
-- Implement CI/CD pipelines that include linter, unit tests, and integration tests before deployment.
-
-This README aims to provide a comprehensive guide for setting up and deploying the Coworking Space Service Extension on Kubernetes without the use of load balancers, focusing on internal cluster communication and security.
+Acknowledgements
+Udacity for providing the Cloud DevOps Engineer Nanodegree program.
+AWS for their cloud services and infrastructure.
+Kubernetes for the container orchestration platform.
