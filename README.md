@@ -1,102 +1,198 @@
-# Coworking Space Service
 
-This project is part of the Udacity Cloud DevOps Engineer Nanodegree program. It focuses on building and deploying a microservice for managing a coworking space using Kubernetes and AWS services.
+## Coworking Space Service
 
-## Project Overview
+This project involves deploying an analytics application using Docker, AWS services, and Kubernetes. The process includes setting up a PostgreSQL database, creating a Docker image of the application, and deploying it to a Kubernetes cluster managed by Amazon EKS.
 
-The Coworking Space Service aims to create a scalable and reliable microservice that handles various functionalities related to managing a coworking space, such as user registration, booking management, and resource allocation.
+## Getting Started
 
-## Technologies Used
+### Initial Setup
 
-- **Docker**: Containerization platform used to package the microservice.
-- **AWS ECR**: Elastic Container Registry for storing Docker images.
-- **AWS CodeBuild**: Continuous integration and deployment service for building and deploying the Docker image.
-- **Kubernetes**: Container orchestration platform for managing and scaling the microservice.
-- **AWS RDS**: Relational Database Service for hosting the Postgres database.
-- **AWS CloudWatch**: Monitoring and logging service for tracking the application's health and performance.
-- **Amazon EKS**: Fully managed Kubernetes service for running Kubernetes on AWS without needing to manage the underlying infrastructure.
+1. **Fork and Clone the Repository**
+   - Fork the starter project to your GitHub account.
+   - Clone your forked repository:
+     ```bash
+     git clone <repository-url>
+     ```
+   - Generate an SSH key and add it to your GitHub account to secure connections:
+     ```bash
+     ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
+     ```
 
-## Project Setup
+### Configure Your Environment
 
-### Prerequisites
+2. **Install Necessary Tools**
+   - **Git**: For version control.
+     ```bash
+     sudo apt-get install git
+     ```
+   - **Docker CLI**: To build and run Docker images locally.
+     ```bash
+     sudo apt-get install docker.io
+     ```
+   - **kubectl**: For interacting with Kubernetes clusters.
+     ```bash
+     sudo snap install kubectl --classic
+     ```
+   - **AWS CLI v2**: For interacting with AWS services.
+     ```bash
+     curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+     unzip awscliv2.zip
+     sudo ./aws/install
+     ```
 
-1. Install the AWS CLI version 2 on your local machine. Follow the [official AWS instructions](https://aws.amazon.com/cli/) for installation.
+3. **AWS Configuration**
+   - Configure AWS CLI:
+     ```bash
+     aws configure
+     ```
+   - Verify installation and configuration:
+     ```bash
+     aws sts get-caller-identity
+     ```
 
-2. Configure AWS CLI:
-   ```
-   aws configure
-   ```
-   This will prompt you to enter your AWS Access Key ID, Secret Access Key, default region, and default output format.
+### Create and Manage Kubernetes Cluster
 
-3. Create an IAM role with the necessary permissions for EKS:
-   - AmazonEKSClusterPolicy
-   - AmazonEKSServicePolicy
+4. **EKS Cluster Setup**
+   - Use `eksctl` to create the EKS cluster:
+     ```bash
+     eksctl create cluster --name my-cluster --region us-east-1 --nodegroup-name my-nodes --node-type t3.small --nodes 1 --nodes-min 1 --nodes-max 2
+     ```
+   - Update your Kubeconfig to interact with the new cluster:
+     ```bash
+     aws eks --region us-east-1 update-kubeconfig --name my-cluster
+     ```
 
-4. Use the AWS CLI to create your EKS cluster:
-   ```
-   aws eks create-cluster --name <cluster-name> --role-arn <role-arn> --resources-vpc-config subnetIds=<subnet-ids>,securityGroupIds=<security-group-ids>
-   ```
+### Database Configuration
 
-### Deploying the Microservice
+5. **Set Up PostgreSQL in Kubernetes**
+   - Apply PersistentVolumeClaim:
+     ```bash
+     kubectl apply -f pvc.yaml
+     ```
+```bash
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgresql-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+```
+   - Apply PersistentVolume:
+     ```bash
+     kubectl apply -f pv.yaml
+     ```
+     ```bash
+     apiVersion: v1
+      kind: PersistentVolume
+      metadata:
+        name: my-manual-pv
+      spec:
+        capacity:
+          storage: 1Gi
+        accessModes:
+          - ReadWriteOnce
+        persistentVolumeReclaimPolicy: Retain
+        storageClassName: gp2
+        hostPath:
+          path: "/mnt/data"
+    ```
+   - Deploy PostgreSQL using a Deployment configuration:
+     ```bash
+     kubectl apply -f postgresql-deployment.yaml
+     ```
+     ```bash
+           apiVersion: apps/v1
+         kind: Deployment
+      metadata:
+        name: postgresql
+      spec:
+        selector:
+          matchLabels:
+            app: postgresql
+        template:
+          metadata:
+            labels:
+              app: postgresql
+          spec:
+            containers:
+            - name: postgresql
+              image: postgres:latest
+              env:
+              - name: POSTGRES_DB
+                value: mydatabase
+              - name: POSTGRES_USER
+                value: myuser
+              - name: POSTGRES_PASSWORD
+                value: mypassword
+              ports:
+              - containerPort: 5432
+              volumeMounts:
+              - mountPath: /var/lib/postgresql/data
+                name: postgresql-storage
+            volumes:
+            - name: postgresql-storage
+              persistentVolumeClaim:
+                claimName: postgresql-pvc
+      ```
 
-1. Clone the project repository:
-   ```
-   git clone <repository-url>
-   ```
-2. Navigate to the project directory:
-   ```
-   cd coworking-space-service
-   ```
-3. Build the Docker image:
-   ```
-   docker build -t coworking-service .
-   ```
-4. Push the Docker image to AWS ECR:
-   ```
-   docker push <aws-ecr-repository-url>
-   ```
-5. Set up the Kubernetes cluster (EKS specifics):
-   ```
-   kubectl apply -f kubernetes/cluster.yaml
-   ```
-6. Deploy the microservice:
-   ```
-   kubectl apply -f kubernetes/deployment.yaml
-   ```
-7. Create the service:
-   ```
-   kubectl apply -f kubernetes/service.yaml
-   ```
-8. Set up the database service:
-   ```
-   kubectl apply -f kubernetes/database.yaml
-   ```
+### Application Deployment
+
+6. **Build and Deploy the Application**
+   - Dockerize the application:
+     ```bash
+     docker build -t my-analytics-application .
+     ```
+   - Push the Docker image to AWS ECR:
+     ```bash
+     aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin <aws_account_id>.dkr.ecr.us-east-1.amazonaws.com
+     docker tag my-analytics-application:latest <aws_account_id>.dkr.ecr.us-east-1.amazonaws.com/my-analytics-application:latest
+     docker push <aws_account_id>.dkr.ecr.us-east-1.amazonaws.com/my-analytics-application:latest
+     ```
+   - Deploy the application using Kubernetes:
+     ```bash
+     kubectl apply -f deployment.yaml
+     kubectl apply -f service.yaml
+     ```
+
+### Monitoring and Logging
+
+7. **Set Up CloudWatch Logging**
+   - Configure CloudWatch for Kubernetes logging:
+     ```bash
+     kubectl apply -f cloudwatch-insights.yaml
+     ```
 
 ## Usage
 
-Utilize the microservice API via the service's external IP address and use the API endpoints for various actions, such as user registration, booking management, and resource allocation.
-
-## Screenshots
-
-(Include relevant screenshots here)
+After deployment, access the application through the exposed Kubernetes service endpoint:
+- Retrieve service details:
+  ```bash
+  kubectl get svc
+  ```
 
 ## Troubleshooting
 
-If you encounter any issues, check the following:
+For any issues:
+- Check pod status:
+  ```bash
+  kubectl get pods
+  ```
+- Describe pods to diagnose issues:
+  ```bash
+  kubectl describe pod <pod_name>
+  ```
 
-- Ensure all setup steps have been correctly followed.
-- Verify all dependencies are installed.
-- Review AWS CloudWatch logs for errors.
-- Refer to the project rubric for additional guidance and requirements.
+## Continuous Improvement
 
-## License
+- Update Docker images and Kubernetes configurations to accommodate application changes.
+- Use AWS CloudWatch to monitor application performance and logs.
 
-This project is licensed under the MIT License.
+## Acknowledgments
 
-## Acknowledgements
-
-- **Udacity**: For the Cloud DevOps Engineer Nanodegree program.
-- **AWS**: For cloud services and infrastructure.
-- **Kubernetes**: For the container orchestration platform.
-
----
+- Thanks to Udacity for the educational platform and resources.
+- AWS for providing the cloud services essential for this project.
+- Kubernetes community for support and resources.
