@@ -1,131 +1,99 @@
-# Coworking Space Service Extension
-The Coworking Space Service is a set of APIs that enables users to request one-time tokens and administrators to authorize access to a coworking space. This service follows a microservice pattern and the APIs are split into distinct services that can be deployed and managed independently of one another.
+# README - Coworking Space Service Extension
 
-For this project, you are a DevOps engineer who will be collaborating with a team that is building an API for business analysts. The API provides business analysts basic analytics data on user activity in the service. The application they provide you functions as expected locally and you are expected to help build a pipeline to deploy it in Kubernetes.
+## Overview
+
+This repository contains the necessary files and instructions for deploying the Coworking Space Service Extension, which provides analytics data on user activity through APIs. This service is implemented following a microservice architecture pattern and is intended for deployment on a Kubernetes cluster named "project3" with a PostgreSQL database.
 
 ## Getting Started
 
+### Prerequisites
+
+Ensure the following tools and environments are set up locally:
+
+- Python 3.6+
+- Docker CLI
+- `kubectl` for interacting with Kubernetes
+- Helm for deploying chart packages in Kubernetes
+- AWS CLI and configured credentials
+
 ### Dependencies
+
 #### Local Environment
-1. Python Environment - run Python 3.6+ applications and install Python dependencies via `pip`
-2. Docker CLI - build and run Docker images locally
-3. `kubectl` - run commands against a Kubernetes cluster
-4. `helm` - apply Helm Charts to a Kubernetes cluster
+
+1. **Python Environment:** Ensure Python 3.6 or higher is installed.
+2. **Docker:** Needed for building and running Docker containers.
+3. **kubectl:** Command-line tool for Kubernetes cluster management.
+4. **Helm:** Used for managing Kubernetes applications.
 
 #### Remote Resources
-1. AWS CodeBuild - build Docker images remotely
-2. AWS ECR - host Docker images
-3. Kubernetes Environment with AWS EKS - run applications in k8s
-4. AWS CloudWatch - monitor activity and logs in EKS
-5. GitHub - pull and clone code
+
+1. **AWS CodeBuild:** For building Docker images in the cloud.
+2. **AWS ECR:** Docker container registry for storing built images.
+3. **Kubernetes (AWS EKS):** Cluster management for deployment.
+4. **AWS CloudWatch:** For monitoring and logging services in EKS.
+5. **GitHub:** Source code management.
 
 ### Setup
-#### 1. Configure a Database
-Set up a Postgres database using a Helm Chart.
 
-1. Set up Bitnami Repo
-```bash
-helm repo add <REPO_NAME> https://charts.bitnami.com/bitnami
-```
+#### 1. Configure a PostgreSQL Database
 
-2. Install PostgreSQL Helm Chart
-```
-helm install <SERVICE_NAME> <REPO_NAME>/postgresql
-```
+- **Add Bitnami Helm repository:**
+  ```bash
+  helm repo add bitnami https://charts.bitnami.com/bitnami
+  ```
+- **Install PostgreSQL using Helm:**
+  ```bash
+  helm install postgres bitnami/postgresql --namespace default
+  ```
+  This command deploys PostgreSQL on the "project3" Kubernetes cluster. Verify the deployment by checking the service:
+  ```bash
+  kubectl get svc postgres-postgresql.default.svc.cluster.local
+  ```
+- **Retrieve the PostgreSQL password:**
+  ```bash
+  export POSTGRES_PASSWORD=$(kubectl get secret --namespace default postgres-postgresql -o jsonpath="{.data.postgres-password}" | base64 --decode)
+  echo $POSTGRES_PASSWORD
+  ```
 
-This should set up a Postgre deployment at `<SERVICE_NAME>-postgresql.default.svc.cluster.local` in your Kubernetes cluster. You can verify it by running `kubectl svc`
+#### 2. Running the Analytics Application Locally
 
-By default, it will create a username `postgres`. The password can be retrieved with the following command:
-```bash
-export POSTGRES_PASSWORD=$(kubectl get secret --namespace default <SERVICE_NAME>-postgresql -o jsonpath="{.data.postgres-password}" | base64 -d)
+- Navigate to the `analytics/` directory.
+- **Install dependencies:**
+  ```bash
+  pip install -r requirements.txt
+  ```
+- **Run the application:**
+  ```bash
+  DB_USERNAME=postgres DB_PASSWORD=$POSTGRES_PASSWORD python app.py
+  ```
 
-echo $POSTGRES_PASSWORD
-```
+### Project Instructions
 
-<sup><sub>* The instructions are adapted from [Bitnami's PostgreSQL Helm Chart](https://artifacthub.io/packages/helm/bitnami/postgresql).</sub></sup>
-
-3. Test Database Connection
-The database is accessible within the cluster. This means that when you will have some issues connecting to it via your local environment. You can either connect to a pod that has access to the cluster _or_ connect remotely via [`Port Forwarding`](https://kubernetes.io/docs/tasks/access-application-cluster/port-forward-access-application-cluster/)
-
-* Connecting Via Port Forwarding
-```bash
-kubectl port-forward --namespace default svc/<SERVICE_NAME>-postgresql 5432:5432 &
-    PGPASSWORD="$POSTGRES_PASSWORD" psql --host 127.0.0.1 -U postgres -d postgres -p 5432
-```
-
-* Connecting Via a Pod
-```bash
-kubectl exec -it <POD_NAME> bash
-PGPASSWORD="<PASSWORD HERE>" psql postgres://postgres@<SERVICE_NAME>:5432/postgres -c <COMMAND_HERE>
-```
-
-4. Run Seed Files
-We will need to run the seed files in `db/` in order to create the tables and populate them with data.
-
-```bash
-kubectl port-forward --namespace default svc/<SERVICE_NAME>-postgresql 5432:5432 &
-    PGPASSWORD="$POSTGRES_PASSWORD" psql --host 127.0.0.1 -U postgres -d postgres -p 5432 < <FILE_NAME.sql>
-```
-
-### 2. Running the Analytics Application Locally
-In the `analytics/` directory:
-
-1. Install dependencies
-```bash
-pip install -r requirements.txt
-```
-2. Run the application (see below regarding environment variables)
-```bash
-<ENV_VARS> python app.py
-```
-
-There are multiple ways to set environment variables in a command. They can be set per session by running `export KEY=VAL` in the command line or they can be prepended into your command.
-
-* `DB_USERNAME`
-* `DB_PASSWORD`
-* `DB_HOST` (defaults to `127.0.0.1`)
-* `DB_PORT` (defaults to `5432`)
-* `DB_NAME` (defaults to `postgres`)
-
-If we set the environment variables by prepending them, it would look like the following:
-```bash
-DB_USERNAME=username_here DB_PASSWORD=password_here python app.py
-```
-The benefit here is that it's explicitly set. However, note that the `DB_PASSWORD` value is now recorded in the session's history in plaintext. There are several ways to work around this including setting environment variables in a file and sourcing them in a terminal session.
-
-3. Verifying The Application
-* Generate report for check-ins grouped by dates
-`curl <BASE_URL>/api/reports/daily_usage`
-
-* Generate report for check-ins grouped by users
-`curl <BASE_URL>/api/reports/user_visits`
-
-## Project Instructions
-1. Set up a Postgres database with a Helm Chart
-2. Create a `Dockerfile` for the Python application. Use a base image that is Python-based.
-3. Write a simple build pipeline with AWS CodeBuild to build and push a Docker image into AWS ECR
-4. Create a service and deployment using Kubernetes configuration files to deploy the application
-5. Check AWS CloudWatch for application logs
+1. Set up a PostgreSQL database using a Helm chart.
+2. Create a Dockerfile for the Python application.
+3. Configure a build pipeline with AWS CodeBuild.
+4. Define Kubernetes service and deployment YAML configurations for deployment.
+5. Monitor the deployment using AWS CloudWatch.
 
 ### Deliverables
-1. `Dockerfile`
-2. Screenshot of AWS CodeBuild pipeline
-3. Screenshot of AWS ECR repository for the application's repository
-4. Screenshot of `kubectl get svc`
-5. Screenshot of `kubectl get pods`
-6. Screenshot of `kubectl describe svc <DATABASE_SERVICE_NAME>`
-7. Screenshot of `kubectl describe deployment <SERVICE_NAME>`
-8. All Kubernetes config files used for deployment (ie YAML files)
-9. Screenshot of AWS CloudWatch logs for the application
-10. `README.md` file in your solution that serves as documentation for your user to detail how your deployment process works and how the user can deploy changes. The details should not simply rehash what you have done on a step by step basis. Instead, it should help an experienced software developer understand the technologies and tools in the build and deploy process as well as provide them insight into how they would release new builds.
 
+- `Dockerfile`
+- Screenshots of AWS CodeBuild pipeline, AWS ECR repository, and Kubernetes service (`kubectl get svc`), pods (`kubectl get pods`), and detailed views (`kubectl describe svc postgres-postgresql` and `kubectl describe deployment your-service-name`).
+- Kubernetes configuration files (YAML).
+- AWS CloudWatch logs.
+- Comprehensive README.md documenting the deployment process.
 
 ### Stand Out Suggestions
-Please provide up to 3 sentences for each suggestion. Additional content in your submission from the standout suggestions do _not_ impact the length of your total submission.
-1. Specify reasonable Memory and CPU allocation in the Kubernetes deployment configuration
-2. In your README, specify what AWS instance type would be best used for the application? Why?
-3. In your README, provide your thoughts on how we can save on costs?
 
-### Best Practicess
-* Dockerfile uses an appropriate base image for the application being deployed. Complex commands in the Dockerfile include a comment describing what it is doing.
-* The Docker images use semantic versioning with three numbers separated by dots, e.g. `1.2.1` and  versioning is visible in the  screenshot. See [Semantic Versioning](https://semver.org/) for more details.
+1. **Resource Allocation:** Include memory and CPU limits in the Kubernetes deployment to ensure efficient resource use.
+2. **AWS Instance Type:** Recommend a suitable AWS instance type for the application considering the resource needs and expected load.
+3. **Cost Optimization:** Discuss strategies for cost reduction, such as using reserved instances or scaling down during off-peak hours.
+
+### Best Practices
+
+- Utilize a suitable base image in the Dockerfile and clearly comment complex commands.
+- Adhere to semantic versioning for Docker images to track changes and upgrades efficiently.
+
+---
+
+This README file serves as both a guide for developers and a document for users to understand the setup and deployment process of the Coworking Space Service Extension on Kubernetes. Adjust paths and names as necessary to match your actual project setup and Kubernetes configurations.
